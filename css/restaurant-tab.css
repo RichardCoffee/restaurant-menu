@@ -1,0 +1,22 @@
+.rmp-menutab {
+  display: block;
+  height: 50px;
+  margin: 0 auto;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      grey,
+      grey 1px,
+      red 4px,
+      red 5px /* determines size */
+  );
+  border: thick solid lightred;
+  border-radius: 4px;
+  border-style-top: none;
+}
+
+.rmp-menutab h2 {
+  padding: 10px;
+  text-align: center;
+  text-shadow: 1px 2px #333;
+}

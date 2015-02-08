@@ -1,0 +1,108 @@
+/* Specific CSS */
+
+.rmp-icon { 
+  font-size: 2em;
+}
+
+/* Kinda Generic CSS */
+
+h3.boxtitle {
+  margin: 0;
+}
+
+h3.title {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+input[name$='[hide]'] {
+  margin-top: 0.25em;
+}
+
+input[type='number'] {
+  text-align: right;
+}
+
+.boxhandle {
+  padding: 1em 0;
+  cursor: move;
+}
+
+.boxtoggle {
+  cursor: pointer;
+  color: grey;
+  padding-top: 0.25em;
+  padding-right: 2em;
+}
+
+.cb-hide{
+  margin-top: 7px;
+}
+
+.editTitle {
+  font-size: small;
+  font-weight: normal;
+}
+
+.groups, .items {
+  padding-right: 2px;
+  width: 96%;
+}
+
+.groups .boxhandle {
+  color: #e5e5e5;
+}
+
+.inside {
+  border-top: 1px solid #e5e5e5;
+  padding: 2px;
+  background-color: #ececec;
+}
+
+.item-details {
+  background-color: #fff;
+}
+
+.metabox {
+  background: none repeat scroll 0 0 #fff;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+  position: relative;
+  line-height: 1;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.placeholder {
+  border: 1px dashed black;
+  height: 3em;
+  margin-bottom: 20px;
+}
+
+/* Really Generic CSS */
+
+.centered {
+  margin-right: auto;
+  margin-left: auto;
+  align: center;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.inline { display: inline-block; }
+
+.pad-t-half { padding-top: 0.5em }
+.pad-lr-2em { padding-right: 2em; padding-left: 2em; }
+
+.pull-left   { float: left; }
+.pull-right { float: right; }
+
+.text1 { height: 2em; }
+.text2 { height: 3em; }
+
+.text6em    { width: 6em; } 
+.text10em  { width: 10em; }
+.text15em  { width: 15em; }
+
+.text75per { width: 75%; }
+.textwide   { width:100%; }
