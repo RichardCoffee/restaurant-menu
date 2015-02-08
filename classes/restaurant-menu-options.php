@@ -116,7 +116,7 @@ class Restaurant_Menu_Options extends TCC_Theme_Options_Values {
     }
     return $setup;
   }
-  
+
   public static function generate_options_css() {
     $layout  = self::menu_options_layout();
     $options = get_option('tcc_options_menu-setup'); ?>

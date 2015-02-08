@@ -6,15 +6,15 @@ class Restaurant_Items {
 
   private static function translate_text() {
     return array('add'     => array('extra'   => __('Add Extra',          'tcc-theme-options'),
-	                                'group'   => __('Add New Group',      'tcc-theme-options'),
+                                    'group'   => __('Add New Group',      'tcc-theme-options'),
                                     'item'    => __('Add New Item',       'tcc-theme-options'),
-									'priced'  => __('Add Priced',         'tcc-theme-option'),
+                                    'priced'  => __('Add Priced',         'tcc-theme-option'),
                                     'section' => __('Add New Section',    'tcc-theme-options'),
-									'tagline' => __('Add Tagline',        'tcc-theme-options')),
+                                    'tagline' => __('Add Tagline',        'tcc-theme-options')),
                  'delete'  => array('group'   => __('Delete This Group',  'tcc-theme-options'),
                                     'item'    => __('Delete This Item',   'tcc-theme-options'),
                                     'section' => __('Delete This Section','tcc-theme-options'),
-									'tagline' => __('Delete Tagline','tcc-theme-options')),
+                                    'tagline' => __('Delete Tagline','tcc-theme-options')),
                  'edit'    => __('Edit','tcc-theme-options'),
                  'item'    => array('desc'    => __('Description','tcc-theme-options'),
                                     'price'   => __('Price',      'tcc-theme-options')),
@@ -26,12 +26,12 @@ class Restaurant_Items {
                                     'asks'    => __('Allow this item to appear on the menu?',  'tcc-theme-options')),
                  'title'   => array('group'   => __('Group Title',           'tcc-theme-options'),
                                     'item'    => __('Item Name',             'tcc-theme-options'),
-									'line'    => __('Extra Description',     'tcc-theme-options'),
+                                    'line'    => __('Extra Description',     'tcc-theme-options'),
                                     'menu'    => __('Menu Title',            'tcc-theme-options'),
                                     'page'    => __('Restaurant Menu Title', 'tcc-theme-options'),
-									'price'   => _x('0.00','displayed as item price placeholder','tcc-theme-options'),
+                                    'price'   => _x('0.00','displayed as item price placeholder','tcc-theme-options'),
                                     'section' => __('Section Title',         'tcc-theme-options'),
-									'tagline' => __('Tagline',               'tcc-theme-option')),
+                                    'tagline' => __('Tagline',               'tcc-theme-option')),
                  'tooltip' => array('handle'  => __('Click to toggle',       'tcc-theme-options'),
                                     'hide'    => __('Checking this will stop this from showing up on your web site.','tcc-theme-options')));
   }
@@ -57,18 +57,18 @@ class Restaurant_Items {
         <div id='group-clone' class='hidden'><?php
           self::render_single_group(array(),'menu[section_clone]','clone'); ?>
         </div>
-		<div id='tagline-clone' class='hidden'><?php
-		  self::render_tagline('','menu[section_clone][group_clone]'); ?>
-		</div>
+        <div id='tagline-clone' class='hidden'><?php
+          self::render_tagline('','menu[section_clone][group_clone]'); ?>
+        </div>
         <div id='item-clone' class='hidden'><?php
           self::render_single_item(array(),'menu[section_clone][group_clone][item_clone]'); ?>
         </div>
-		<div id='line-clone' class='hidden'><?php
-		  echo self::render_single_line('','menu[section_clone][group_clone][item_clone][extra][line_clone]'); ?>
-		</div>
-		<div id='priced-clone' class='hidden'><?php
-		  echo self::render_single_priced(array('clone'=>true),'menu[section_clone][group_clone][item_clone][extra][line_clone]'); ?>
-		</div>
+        <div id='line-clone' class='hidden'><?php
+          echo self::render_single_line('','menu[section_clone][group_clone][item_clone][extra][line_clone]'); ?>
+        </div>
+        <div id='priced-clone' class='hidden'><?php
+          echo self::render_single_priced(array('clone'=>true),'menu[section_clone][group_clone][item_clone][extra][line_clone]'); ?>
+      </div>
       </div><?php
       do_action('restaurant_notices'); ?>
       <form name='restaurant-menu' method='post' action=''>
@@ -170,7 +170,7 @@ class Restaurant_Items {
           <div class='col span_4_of_6'><?php
             $area  = "<input type='text' class='textwide updateTitle' name='{$base}[title]'";
             $area .= " placeholder='".self::$text['title']['group']."' value='{$data['title']}' />";
-			echo $area; ?>
+            echo $area; ?>
           </div>
           <div class='col span_1_of_6 pad-t-half'><?php
             $anchor = ($data['hide']=='yes') ? self::$text['status']['show'] : self::$text['status']['hide'];
@@ -181,16 +181,16 @@ class Restaurant_Items {
         <div class='col items' data-group='<?php echo $cnt; ?>'><?php
           $icnt = self::render_items($data,$base); ?>
         </div>
-		<div class='textwide inline'><?php
-		  if (isset($data['tagline'])) {
-		    self::render_tagline($data['tagline'],$base);
-		  } ?>
-		</div>
-		<div class='centered'><?php
+        <div class='textwide inline'><?php
+          if (isset($data['tagline'])) {
+            self::render_tagline($data['tagline'],$base);
+          } ?>
+        </div>
+        <div class='centered'><?php
           $button  = "<button type='button' class='button-secondary pull-left addItem' data-cnt='$icnt'>";
           $button .= "<i class='fa fa-plus'></i> ".self::$text['add']['item']." </button>";
-		  $bclass  = (isset($data['tagline'])) ? 'hidden' : '';
-		  $button .= "<span class='$bclass'><button type='button' class='button-secondary addTagline'>";
+          $bclass  = (isset($data['tagline'])) ? 'hidden' : '';
+          $button .= "<span class='$bclass'><button type='button' class='button-secondary addTagline'>";
           $button .= "<i class='fa fa-plus'></i> ".self::$text['add']['tagline']." </button></span>";
 		  $bclass  = (isset($data['tagline'])) ? '' : 'hidden';
 		  $button .= "<span class='$bclass'><button type='button' class='button-secondary deleteTagline'>";
@@ -241,9 +241,9 @@ class Restaurant_Items {
             <h3 class='title'><?php echo self::$text['title']['item']; ?></h3>
           </div>
           <div class='col span_4_of_6'><?php
-		    $area  = "<input type='text' class='textwide updateTitle' name='{$base}[title]'";
+            $area  = "<input type='text' class='textwide updateTitle' name='{$base}[title]'";
             $area .= " placeholder='".self::$text['title']['item']."' value='{$data['title']}' />";
-			echo $area; ?>
+            echo $area; ?>
           </div>
           <div class='col span_1_of_6 pad-t-half'><?php
             if (!isset($data['hide'])) $data['hide'] = 'no';
