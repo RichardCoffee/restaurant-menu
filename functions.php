@@ -32,13 +32,14 @@ function rmp_header_logo() {
 }
 
 if (!function_exists('tcc_log_entry')) {
-  function tcc_log_entry($message) {
+  function tcc_log_entry($message,$mess2='') {
     if (WP_DEBUG) {
       if (is_array($message) || is_object($message)) {
         error_log(print_r($message, true));
       } else {
         error_log($message);
       }
+      if ($mess2) tcc_log_entry($mess2);
     }
   }
 }
