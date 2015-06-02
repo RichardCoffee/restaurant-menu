@@ -7,7 +7,6 @@ class Restaurant_Menu {
   private static $class  = 'col-lg-6 col-md-6 col-sm-6 col-xs-12';
 
   public static function display_menu() {
-#    if (!current_user_can('edit_pages')) return;
     self::$format = _x('%1$s %2$5.2f','item price format: symbol and number','tcc-theme-options');
     $menu  = get_option('tcc_options_menu-setup');
     $mdefs = Restaurant_Menu_Options::options_defaults('menu-setup');
