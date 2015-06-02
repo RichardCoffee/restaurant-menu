@@ -3,6 +3,7 @@
 class Restaurant_Menu_Register extends TCC_Theme_Options_Register {
 
   public static function activate($transient='show_rmp_setup_page') {
+    if (!current_user_can('activate_plugins')) return;
     if (!parent::activate($transient)) return;
     self::add_options();
   }
