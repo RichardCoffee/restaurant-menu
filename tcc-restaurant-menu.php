@@ -29,24 +29,24 @@ if (class_exists('TCC_Theme_Options_Register')) {
 
   function restaurant_menu_initialize() {
     require_once(RMP_LOCATE.'functions.php');
-	include_once(RMP_LOCATE.'classes/restaurant-menu-options.php');
-	if (is_admin()) {
+    include_once(RMP_LOCATE.'classes/restaurant-menu-options.php');
+    if (is_admin()) {
       include_once(RMP_LOCATE.'classes/restaurant-menu-updates.php');
       include_once(RMP_LOCATE.'classes/restaurant-menu-admin.php');
-	  include_once(RMP_LOCATE.'classes/restaurant-items.php');
+      include_once(RMP_LOCATE.'classes/restaurant-items.php');
       Restaurant_Menu_Updates::check_update('rmp_');
       $lang_dir = TCC_LOCATE.'languages/';
       load_plugin_textdomain( 'tcc-theme-options', false, $lang_dir );
       add_action('admin_init',              array('Restaurant_Menu_Updates','redirect_about'),1);
       add_filter('tcc_options_menu_array',  array('Restaurant_Menu_Options','options_menu_array'),11);
-	  add_filter('tcc_about_options_layout',array('Restaurant_Menu_Options','about_options'));
-	  add_filter('tcc_admin_menu_setup',    array('Restaurant_Menu_Admin','admin_menu_setup'));
-	  add_action('wp_ajax_save_rmp_menu',   array('Restaurant_Items','save_menu_items'));
-	} else {
-	  add_action('init','rmp_register_shortcodes');
-	  add_action('wp_enqueue_scripts','rmp_enqueue_scripts');
-	  add_action('wp_head',array('Restaurant_Menu_Options','generate_options_css'));
-	}
+      add_filter('tcc_about_options_layout',array('Restaurant_Menu_Options','about_options'));
+      add_filter('tcc_admin_menu_setup',    array('Restaurant_Menu_Admin','admin_menu_setup'));
+      add_action('wp_ajax_save_rmp_menu',   array('Restaurant_Items','save_menu_items'));
+    } else {
+      add_action('init','rmp_register_shortcodes');
+      add_action('wp_enqueue_scripts','rmp_enqueue_scripts');
+      add_action('wp_head',array('Restaurant_Menu_Options','generate_options_css'));
+    }
   }
   add_action('plugins_loaded','restaurant_menu_initialize',11);
 
