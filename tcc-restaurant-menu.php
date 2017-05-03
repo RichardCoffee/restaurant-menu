@@ -13,7 +13,7 @@ License: GPLv2 or later
 
 defined('ABSPATH') || exit;
 
-if (class_exists('TCC_Theme_Options_Register')) {
+if (class_exists('RMP_Theme_Options_Register')) {
 
   define('RMP_VERSION','1.3');
   define('RMP_DBVERS','0');
@@ -35,7 +35,7 @@ if (class_exists('TCC_Theme_Options_Register')) {
       include_once(RMP_LOCATE.'classes/restaurant-menu-admin.php');
       include_once(RMP_LOCATE.'classes/restaurant-items.php');
       Restaurant_Menu_Updates::check_update('rmp_');
-      $lang_dir = TCC_LOCATE.'languages/';
+      $lang_dir = RMP_LOCATE.'languages/';
       load_plugin_textdomain( 'tcc-theme-options', false, $lang_dir );
       add_action('admin_init',              array('Restaurant_Menu_Updates','redirect_about'),1);
       add_filter('tcc_options_menu_array',  array('Restaurant_Menu_Options','options_menu_array'),11);

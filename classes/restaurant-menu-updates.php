@@ -1,6 +1,6 @@
 <?php
 
-class Restaurant_Menu_Updates extends TCC_Theme_Options_Updates {
+class Restaurant_Menu_Updates extends RMP_Theme_Options_Updates {
 
   private static $dbvers  = RMP_DBVERS;
   private static $version = RMP_VERSION;

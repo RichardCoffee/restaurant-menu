@@ -14,7 +14,7 @@ class Restaurant_Menu_Admin {
 	$item_cap  = 'manage_options';
     $menu_func = array('Restaurant_Items','render_page');
 	if (($general['loca']=='dashboard') && ($setup['loca']=='tcc')) {
-	  add_submenu_page(TCC_Theme_Options_Admin::$menu_slug,$item_name,$item_name,$item_cap,self::$menu_slug,$menu_func);
+	  add_submenu_page(RMP_Theme_Options_Admin::$menu_slug,$item_name,$item_name,$item_cap,self::$menu_slug,$menu_func);
 	} else if ($setup['loca']=='pages') {
 	  add_pages_page($item_name,$item_name,'edit_pages',self::$menu_slug,$menu_func);
 	} else if ($setup['loca']=='settings') {
@@ -42,13 +42,6 @@ class Restaurant_Menu_Admin {
   public static function load_options_scripts() {
     wp_register_script('rmp-admin', RMP_URL.'js/admin.js',   array('jquery','tcc-library'), false, true);
 	wp_enqueue_script('rmp-admin');
-  }
-
-  public static function describe_menu() {
-    $string  = '<p>'.__('The restaurant menu can be placed on any desired page by using the shortcode [restaurant-menu].','tcc-theme-options').'</p>';
-	$string .= '<p>'.__('The menu consists of sections, which are divided into groups, which contain the individual items.','tcc-theme-options').'</p>';
-	$string .= '<p>Go to the <a href="/wp-admin/admin.php?page=restaurant">menu creater</a>.</p>';
-    echo $string;
   }
 
   public static function describe_items() {

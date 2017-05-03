@@ -1,6 +1,6 @@
 <?php /* arrays.php */
 
-class Restaurant_Menu_Options extends TCC_Theme_Options_Values {
+class Restaurant_Menu_Options extends RMP_Theme_Options_Values {
 
   public static function options_menu_array($options=array()) {
     $options['menu-setup'] = array('describe' => array('Restaurant_Menu_Admin','describe_menu'),
@@ -10,7 +10,7 @@ class Restaurant_Menu_Options extends TCC_Theme_Options_Values {
   }
 
   protected static function menu_options_layout() {
-    $text = self::translate_text();  // function in TCC_Theme_Options
+    $text = self::translate_text();  // function in RMP_Theme_Options
     $ret = array('menu'      => array('label'   => '<h3>'.__('Menu Settings','tcc-theme-options').'</h3>',
                                       'text'    => '<h4>'.__("These options control the Menu's general settings",'tcc-theme-options').'</h4>',
                                       'render'  => 'display'),
