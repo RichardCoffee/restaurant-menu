@@ -5,6 +5,9 @@ class RMP_Form_RestMenu extends RMP_Form_Admin {
 
 	protected $slug = 'restmenu';
 	protected $menu_text;
+	/*  properties inherited from Form_Admin class  */
+#	protected $hook_suffix;
+#	protected $render;
 
 	use RMP_Trait_Singleton;
 
