@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name
+ * Restaurant Menu
  *
  * @package   Restaurant_Menu
  * @author    Richard Coffee <richard.coffee@gmail.com>
@@ -33,10 +33,10 @@ if ( ! defined('ABSPATH') || ! function_exists( 'is_admin' ) ) {
 	exit();
 }
 
-define( 'TCC_PLUGIN_DIR' , plugin_dir_path( __FILE__ ) );
+define( 'RMP_PLUGIN_DIR' , plugin_dir_path( __FILE__ ) );
 
 require_once( 'functions.php' );
 
-$rmp_plugin = TCC_Plugin_RestMenu::get_instance( array( 'file' => __FILE__ ) );
+$rmp_plugin = RMP_Plugin_RestMenu::get_instance( [ 'file' => __FILE__ ] );
 
-register_activation_hook( __FILE__, array( 'TCC_Register_Plugin', 'activate' ) );
+register_activation_hook( __FILE__, [ 'RMP_Register_Plugin', 'activate' ] );

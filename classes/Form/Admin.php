@@ -1,48 +1,146 @@
 <?php
-
-/*
- *  classes/Form/Admin.php
+/**
+ *  Display admin forms
  *
- *  copyright 2014-2017, The Creative Collective, the-creative-collective.com
- *
- *  I sure hope that Fields API thing works out, cause then I can get rid of this monstrosity.
+ * @package Restaurant_Menu
+ * @subpackage Forms
+ * @since 20150323
+ * @author Richard Coffee <richard.coffee@rtcenterprises.net>
+ * @copyright Copyright (c) 2018, Richard Coffee
+ * @link https://github.com/RichardCoffee/custom-post-type/blob/master/classes/Form/Admin.php
  */
-
+defined( 'ABSPATH' ) || exit;
+/**
+ *  Abstract class to provide basic functionality for displaying admin option screens
+ */
 abstract class RMP_Form_Admin {
 
-	protected $current   = '';
-	protected $form      =  array();
-	protected $form_opts =  array();
-	protected $form_text =  array();
+	/**
+	 * @since 20150926
+	 * @var string name of screen options saved in WP dbf
+	 */
+	protected $current = '';
+	/**
+	 * @since 20150323
+	 * @var array controls screen layout and display
+	 */
+	protected $form = array();
+	/**
+	 * @since 20150926
+	 * @var array screen options array from WP dbf
+	 */
+	protected $form_opts = array();
+	/**
+	 * @since 20150323
+	 * @var array contains translated text strings
+	 */
+	protected $form_text = array();
+	/**
+	 *  This is the admin menu hook, and should be set in the child class.
+	 *
+	 * @since 20160212
+	 * @var string
+	 */
 	protected $hook_suffix;
-	protected $library;
+	/**
+	 * @since 20150323
+	 * @var string callback function for settings field
+	 */
 	protected $options;
-	protected $prefix    = 'tcc_options_';
+	/**
+	 * @since 20150323
+	 * @var string screen options name prefix
+	 */
+	protected $prefix = 'tcc_options_';
+	/**
+	 * @since 20150323
+	 * @var string name of function that registers the form
+	 */
 	protected $register;
+	/**
+	 * @since 20150323
+	 * @var string callback function for rendering fields
+	 */
 	protected $render;
-	protected $slug      = 'default_page_slug';
-	public    $tab       = 'about';
-	protected $type      = 'single'; # two values: single, tabbed
+	/**
+	 * @since 20150323
+	 * @var string page slug
+	 */
+	protected $slug = 'default_page_slug';
+	/**
+	 * @since 20151001
+	 * @var string form tab to be shown to user
+	 */
+	public $tab = 'about';
+	/**
+	 * @since 20150323
+	 * @var string form type: 'single','tabbed'
+	 * @todo add 'multi'
+	 */
+	protected $type = 'single';
+	/**
+	 * @since 20150323
+	 * @var string callback function for field validation
+	 */
 	protected $validate;
 
+	/**
+	 * @link https://github.com/RichardCoffee/custom-post-type/blob/master/classes/Trait/Attributes.php
+	 */
+	use RMP_Trait_Attributes;
+	/**
+	 * @link https://github.com/RichardCoffee/custom-post-type/blob/master/classes/Trait/Logging.php
+	 */
 	use RMP_Trait_Logging;
 
+	/**
+	 *  Abstract function declaration for child classes.  Function should return an array.
+	 *
+	 * @since 20150323
+	 * @used-by RMP_Form_Admin::load_form_page()
+	 */
 	abstract protected function form_layout( $option );
+	/**
+	 *  Default function to provide text at top of form screen
+	 *
+	 * @since 20150323
+	 */
 	public function description() { return ''; }
 
+	/**
+	 *  Constructor function
+	 *
+	 * @since 20150323
+	 * @uses RMP_Form_Admin::screen_type()
+	 * @see add_action()
+	 */
 	protected function __construct() {
-		$this->library = library();
 		$this->screen_type();
-		add_action( 'admin_init', array( $this, 'load_form_page' ) );
+		add_action( 'admin_init', [ $this, 'load_form_page' ] );
 	}
 
+	/**
+	 *  Handles setup for loading the form.  Provides a do_action call for 'tcc_load_form_page'.
+	 *
+	 * @since 20150926
+	 * @see wp_get_referer()
+	 * @see sanitize_key()
+	 * @see get_transient()
+	 * @see set_transient()
+	 * @uses RMP_Form_Admin::form_text()
+	 * @uses RMP_Form_Admin::form_layout()
+	 * @uses RMP_Form_Admin::determine_option()
+	 * @uses RMP_Form_Admin::get_form_options()
+	 * @see do_action()
+	 * @see add_action()
+	 */
 	public function load_form_page() {
 		global $plugin_page;
 		if ( ( $plugin_page === $this->slug ) || ( ( $refer = wp_get_referer() ) && ( strpos( $refer, $this->slug ) ) ) ) {
 			if ( $this->type === 'tabbed' ) {
-				if ( isset( $_POST['tab'] ) ) {
+				if ( array_key_exists( 'tab', $_POST ) ) {
 					$this->tab = sanitize_key( $_POST['tab'] );
-				} else if ( isset( $_GET['tab'] ) )  {
+				} else if ( array_key_exists( 'tab', $_GET ) )  {
 					$this->tab = sanitize_key( $_GET['tab'] );
 				} else if ( $trans = get_transient( 'RMP_TAB' ) ) {
 					$this->tab = $trans;
@@ -53,7 +151,7 @@ abstract class RMP_Form_Admin {
 			}
 			$this->form_text();
 			$this->form = $this->form_layout();
-			if ( ( $this->type === 'tabbed' ) && ! isset( $this->form[ $this->tab ] ) ) {
+			if ( ( $this->type === 'tabbed' ) && ! array_key_exists( $this->tab, $this->form ) ) {
 				$this->tab = 'about';
 			}
 			$this->determine_option();
@@ -61,46 +159,104 @@ abstract class RMP_Form_Admin {
 			$func = $this->register;
 			$this->$func();
 			do_action( 'tcc_load_form_page' );
-			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+			add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 		}
 	}
 
-	public function enqueue_scripts() {
-		wp_register_style(  'admin-form.css', get_theme_file_uri( 'css/admin-form.css' ), array( 'wp-color-picker' ) );
-		wp_register_script( 'admin-form.js',  get_theme_file_uri( 'js/admin-form.js' ), array( 'jquery', 'wp-color-picker' ), false, true );
+	/**
+	 *  Load required style and script files.  Provides filter 'tcc_form_admin_options_localization' to allow child classes to add javascript variables.
+	 *
+	 * @since 20150925
+	 * @param string $hook_suffix admin page menu option suffix - passed by WP but not used
+	 * @see wp_enqueue_media()
+	 * @see wp_enqueue_style()
+	 * @see get_theme_file_uri()
+	 * @see wp_enqueue_script()
+	 * @see wp_localize_script()
+	 */
+	public function admin_enqueue_scripts( $hook_suffix ) {
 		wp_enqueue_media();
-		wp_enqueue_style(  'admin-form.css' );
-		wp_enqueue_script( 'admin-form.js'  );
+		wp_enqueue_style(  'admin-form.css', get_theme_file_uri( 'css/admin-form.css' ), [ 'wp-color-picker' ] );
+		wp_enqueue_script( 'admin-form.js',  get_theme_file_uri( 'js/admin-form.js' ),   [ 'jquery', 'wp-color-picker' ], false, true );
+		$options = apply_filters( 'tcc_form_admin_options_localization', array() );
+		if ( $options ) {
+			$options = $this->normalize_options( $options, $options );
+			wp_localize_script( 'admin-form.js', 'tcc_admin_options', $options );
+		}
+	}
+
+	/**
+	 *  Ensures 'showhide' sub-arrays contain all required subscripts for the javascript.
+	 *
+	 * @since 20170505
+	 * @param array $new
+	 * @param array $old
+	 * @return array
+	 */
+	protected function normalize_options( $new, $old ) {
+		if ( array_key_exists( 'showhide', $old ) ) {
+			$new['showhide'] = array_map( [ $this, 'normalize_showhide' ], $old['showhide'] );
+		}
+		return $new;
+	}
+
+	/**
+	 *  Provides array defaults
+	 *
+	 * @since 20170507
+	 * @param array $item
+	 * @return array
+	 */
+	public function normalize_showhide( $item ) {
+		$default = array(
+			'origin' => null,
+			'target' => null,
+			'show'   => null,
+			'hide'   => null,
+		);
+		return array_merge( $default, $item );
 	}
 
 
-  /**  Form text functions  **/
-
+	/**
+	 *  Assigns translated text to object array
+	 *
+	 * @since 20150323
+	 * @see _x()
+	 * @see apply_filters()
+	 * @used-by RMP_Form_Admin::load_form_page()
+	 */
 	private function form_text() {
-	$text = array(
-		'error'  => array(
-			'render'    => _x( 'ERROR: Unable to locate function %s', 'string - a function name', 'rmp-restmenu' ),
-			'subscript' => _x( 'ERROR: Not able to locate form data subscript:  %s', 'placeholder will be an ASCII character string', 'rmp-restmenu' )
-		),
-		'submit' => array(
-			'save'      => __( 'Save Changes', 'rmp-restmenu' ),
-			'object'    => __( 'Form', 'rmp-restmenu' ),
-			'reset'     => _x( 'Reset %s', 'placeholder is a noun, may be plural', 'rmp-restmenu' ),
-			'subject'   => __( 'Form', 'rmp-restmenu' ),
-			'restore'   => _x( 'Default %s options restored.', 'placeholder is a noun, probably singular', 'rmp-restmenu' )
-		),
-		'media'  => array(
-			'title'     => __( 'Assign/Upload Image', 'rmp-restmenu' ),
-			'button'    => __( 'Assign Image', 'rmp-restmenu' ),
-			'delete'    => __( 'Unassign Image', 'rmp-restmenu' )
-		)
-	);
-	$this->form_text = apply_filters( 'form_text_' . $this->slug, $text, $text );
+		$text = array(
+			'error'  => array(
+				'render'    => _x( 'ERROR: Unable to locate function %s', 'string - a function name', 'rmp-restmenu' ),
+				'subscript' => _x( 'ERROR: Not able to locate form data subscript:  %s', 'placeholder will be an ASCII character string', 'rmp-restmenu' )
+			),
+			'submit' => array(
+				'save'      => __( 'Save Changes', 'rmp-restmenu' ),
+				'object'    => __( 'Form', 'rmp-restmenu' ),
+				'reset'     => _x( 'Reset %s', 'placeholder is a noun, may be plural', 'rmp-restmenu' ),
+				'subject'   => __( 'Form', 'rmp-restmenu' ),
+				'restore'   => _x( 'Default %s options restored.', 'placeholder is a noun, probably singular', 'rmp-restmenu' )
+			),
+			'media'  => array(
+				'title'     => __( 'Assign/Upload Image', 'rmp-restmenu' ),
+				'button'    => __( 'Assign Image', 'rmp-restmenu' ),
+				'delete'    => __( 'Unassign Image', 'rmp-restmenu' )
+			)
+		);
+		$this->form_text = apply_filters( 'form_text_' . $this->slug, $text, $text );
 	}
 
 
-  /**  Register Screen functions **/
+	/**  Register Screen functions **/
 
+	/**
+	 *  Assign default values for callback functions.
+	 *
+	 * @since 20150323
+	 * @used-by RMP_Form_Admin::__constructor()
+	 */
 	private function screen_type() {
 		$this->register = 'register_' . $this->type . '_form';
 		$this->render   =   'render_' . $this->type . '_form';
@@ -108,11 +264,18 @@ abstract class RMP_Form_Admin {
 		$this->validate = 'validate_' . $this->type . '_form';
 	}
 
+	/**
+	 *  Setup for single form fields
+	 *
+	 * @since 20150323
+	 * @see register_setting()
+	 * @see add_settings_section()
+	 */
 	public function register_single_form() {
-		register_setting( $this->current, $this->current, array( $this, $this->validate ) );
-		$title = ( isset( $this->form['title']    ) ) ? $this->form['title']    : '';
-		$desc  = ( isset( $this->form['describe'] ) ) ? $this->form['describe'] : 'description';
-		$desc  = ( is_array( $desc ) ) ? $desc : ( ( method_exists( $this, $desc ) ) ? array( $this, $desc ) : $desc );
+		register_setting( $this->current, $this->current, [ $this, $this->validate ] );
+		$title = ( array_key_exists( 'title',    $this->form ) ) ? $this->form['title']    : '';
+		$desc  = ( array_key_exists( 'describe', $this->form ) ) ? $this->form['describe'] : 'description';
+		$desc  = ( is_array( $desc ) ) ? $desc : ( ( method_exists( $this, $desc ) ) ? [ $this, $desc ] : $desc );
 		add_settings_section( $this->current, $title, $desc, $this->current );
 		foreach( $this->form['layout'] as $item => $data ) {
 			if ( is_string( $data ) ) {
@@ -122,147 +285,123 @@ abstract class RMP_Form_Admin {
 		}
 	}
 
-  public function register_tabbed_form() {
-    $validater = (isset($this->form['validate'])) ? $this->form['validate'] : $this->validate;
-    foreach($this->form as $key=>$section) {
-      if (!((array)$section===$section)) continue; // skip string variabler
-      if (!($section['option']===$this->current)) continue;
-      $validate = (isset($section['validate'])) ? $section['validate'] : $validater;
-      $current  = (isset($this->form[$key]['option'])) ? $this->form[$key]['option'] : $this->prefix.$key;
-      #register_setting($this->slug,$current,array($this,$validate));
-      register_setting($current,$current,array($this,$validate));
-      $title    = (isset($section['title']))    ? $section['title']    : '';
-      $describe = (isset($section['describe'])) ? $section['describe'] : 'description';
-      $describe = (is_array($describe)) ? $describe : array($this,$describe);
-      #add_settings_section($current,$title,$describe,$this->slug);
-      add_settings_section($current,$title,$describe,$current);
-      foreach($section['layout'] as $item=>$data) {
-        $this->register_field($current,$key,$item,$data);
-      }
-    }
-  } //*/
-
-  private function register_field($option,$key,$itemID,$data) {
-    if (is_string($data))        return; // skip string variables
-    if (!isset($data['render'])) return;
-    if ($data['render']=='skip') return;
-/*    if ($data['render']=='array') {
-      $count = max(count($data['default']),count($this->form_opts[$key][$itemID]));
-      for ($i=0;$i<$count;$i++) {
-        $label  = "<label for='$itemID'>{$data['label']} ".($i+1)."</label>";
-        $args   = array('key'=>$key,'item'=>$itemID,'num'=>$i);
-#        if ($i+1==$count) { $args['add'] = true; }
-        add_settings_field("{$item}_$i",$label,array($this,$this->options),$this->slug,$current,$args);
-      }
-    } else { //*/
-      $label = $this->field_label($itemID,$data);
-      $args  = array('key'=>$key,'item'=>$itemID);
-      #add_settings_field($itemID,$label,array($this,$this->options),$this->slug,$option,$args);
-      add_settings_field($itemID,$label,array($this,$this->options),$option,$option,$args);
-#    }
-  }
-
-  private function field_label($ID,$data) {
-    $html = '';
-    if (($data['render']==='display') || ($data['render']==='radio_multiple')) {
-      $html = '<span';
-      $html.= (isset($data['help']))  ? ' title="'.esc_attr($data['help']).'">' : '>';
-      $html.= (isset($data['label'])) ? esc_html($data['label']) : '';
-      $html.= '</span>';
-    } elseif ($data['render']==='title') {
-      $html = '<span';
-      $html.= ' class="form-title"';
-      $html.= (isset($data['help']))  ? ' title="'.esc_attr($data['help']).'">' : '>';
-      $html.= (isset($data['label'])) ? esc_html($data['label']) : '';
-      $html.= '</span>';
-    } else {
-      $html = '<label for="'.esc_attr($ID).'"';
-      $html.= (isset($data['help']))  ? ' title="'.esc_attr($data['help']).'">' : '>';
-      $html.= (isset($data['label'])) ? esc_html($data['label']) : '';
-      $html.= '</label>';
-    }
-    return $html;
-  }
-
-
-  /**  Customizer  **/
-
-	public function customizer_settings( $wp_customize, $base ) {
-		log_entry($base,$wp_customize);
+	/**
+	 *  Setup for tabbed form fields
+	 *
+	 * @since 20150323
+	 * @see register_setting()
+	 * @see add_settings_section()
+	 */
+	public function register_tabbed_form() {
+		$validater = ( array_key_exists( 'validate', $this->form ) ) ? $this->form['validate'] : $this->validate;
+		foreach( $this->form as $key => $section ) {
+			if ( ! ( (array)$section === $section ) )
+				continue; // skip string variables
+			if ( ! ( $section['option'] === $this->current ) )
+				continue; // skip all but current screen
+			$validate = ( array_key_exists( 'validate', $section ) ) ? $section['validate'] : $validater;
+			$current  = ( array_key_exists( 'option', $this->form[ $key ] ) ) ? $this->form[ $key ]['option'] : $this->prefix . $key;
+			register_setting( $current, $current, [ $this, $validate ] );
+			$title    = ( array_key_exists( 'title',    $section ) ) ? $section['title']    : '';
+			$describe = ( array_key_exists( 'describe', $section ) ) ? $section['describe'] : 'description';
+			$describe = ( is_array( $describe ) ) ? $describe : [ $this, $describe ];
+			add_settings_section( $current, $title, $describe, $current );
+			foreach( $section['layout'] as $item => $data ) {
+				$this->register_field( $current, $key, $item, $data );
+			}
+		}
 	}
-/*  All this is either going to get moved or done away with altogether
-  public function customizer_settings($wp_customize,$base) {
-    if ($base && $this->form[$base]) {
-      $layout = $this->form[$base];
-#log_entry('customizer',"base: $base",$layout,$wp_customize); // too many recursion errors for this to be useful
-      foreach($layout as $key=>$option) {
-        if (!isset($option['default'])) { continue; }
-        if (!isset($option['render']))  { continue; }
-        if ($option['render']==='skip') { continue; }
-        $name = "tcc_options_{$base}[$key]";
-        $settings = array('default'    => $option['default'],
-                          'type'       => 'option',
-                          'capability' => 'edit_theme_options',
-                          'sanitize_callback' => $this->sanitize_callback($option));
-        $wp_customize->add_setting($name,$settings);
-        #  default WordPress sections
-        $wp_sections = array('title_tagline','colors','header_image','background_image','nav','static_front_page');
-        $section  = (in_array($base,$wp_sections)) ? $base : "fluid_$base";
-        $controls = array('label'    => $option['label'], // FIXME: use $this->field_label($ID,$option) instead, what would $ID be?
-                          'section'  => $section,
-                          'settings' => $name);
-        switch($option['render']) {
-          case "checkbox":
-            $controls['type'] = 'checkbox';
-            break;
-          case "colorpicker":
-            $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize,$name,$controls));
-            $name = false;
-            break;
-          case "image": // FIXME: does not seem to work as advertised
-            //$controls['type'] = 'image';
-            if (isset($option['context'])) $controls['context'] = $option['context'];
-log_entry($controls);
-            $wp_customize->add_control(new WP_Customize_Image_Control($wp_customize,$name,$controls));
-            break;
-          case "radio":
-            $controls['type']    = 'radio';
-            $controls['choices'] = $option['source'];
-            break;
-          case "select":
-            if (!is_array($option['source'])) continue; // FIXME: this action leaves an orphaned setting with no control
-            $controls['type']    = 'select';
-            $controls['choices'] = $option['source'];
-            break;
-          default:
-            log_entry("WARNING:  switch case needed in customizer_settings for {$option['render']}");
-            $name = false;
-        }
-        if ($name) $wp_customize->add_control($name,$controls);
-      }
-    }
-  } //*/
 
-  private function sanitize_callback($option) {
-    $valid_func = "validate_{$option['render']}";
-    if (method_exists($this,$valid_func)) {
-      $retval = array($this,$valid_func);
-    } else if (function_exists($valid_func)) {
-      $retval = $valid_func;
-    } else {
-      $retval = 'wp_kses_post';
-    }
-    return $retval;
-  }
+	/**
+	 *  Register fields with the WP Settings API
+	 *
+	 * @since 20150323
+	 * @see add_settings_field()
+	 */
+	private function register_field( $option, $key, $itemID, $data ) {
+		if ( is_string( $data ) )
+			return; // skip string variables
+		if ( ! array_key_exists( 'render', $data ) )
+			return; // skip variables without render data
+		if ( $data['render'] === 'skip' )
+			return; // skip variable when needed
+		if ( $data['render'] === 'array' ) { /*
+			$count = max( count( $data['default'] ), count( $this->form_opts[ $key ][ $itemID ] ) );
+			for ( $i = 0; $i < $count; $i++ ) {
+				$label  = "<label for='$itemID'>{$data['label']} ".($i+1)."</label>";
+				$args   = array( 'key' => $key, 'item' => $itemID, 'num' => $i );
+#				if ( $i + 1 === $count ) { $args['add'] = true; }
+				add_settings_field( "{$item}_$i", $label, array( $this, $this->options ), $this->slug, $current, $args );
+			} //*/
+			$this->log( 'ALERT: data[render] = array', $data );
+		} else {
+			$label = $this->field_label( $itemID, $data );
+			$args  = [ 'key' => $key, 'item' => $itemID ];
+			add_settings_field( $itemID, $label, [ $this, $this->options ], $option, $option, $args );
+		}
+	}
+
+	/**
+	 *  Display label for field
+	 *
+	 * @since 20150930
+	 * @param string $ID field ID
+	 * @param array $data field data
+	 * @uses RMP_Trait_Attributes::get_element()
+	 * @return string
+	 */
+	private function field_label( $ID, $data ) {
+		$data  = array_merge( [ 'help' => '', 'label' => '' ], $data );
+		$attrs = array(
+			'title' => $data['help'],
+		);
+		if ( in_array( $data['render'], [ 'display', 'radio_multiple' ] ) ) {
+			return $this->get_element( 'span', $attrs, $data['label'] );
+		} else if ( $data['render'] === 'title' ) {
+			$attrs['class'] = 'form-title';
+			return $this->get_element( 'span', $attrs, $data['label'] );
+		} else {
+			$attrs['for'] = $ID;
+			return $this->get_element( 'label', $attrs, $data['label'] );
+		}
+		return '';
+	}
+
+	/**
+	 *  Checks to make sure that field's validation callback function is callable
+	 *
+	 * @since 20160228
+	 * @param array $data field data
+	 * @return string
+	 */
+	private function sanitize_callback( $data ) {
+		$valid_func = "validate_{$data['render']}";
+		if ( is_array( $valid_func ) && method_exists( $valid_func[0], $valid_func[1] ) ) {
+			$callback = $valid_func;
+		} else if ( method_exists( $this, $valid_func ) ) {
+			$callback = [ $this, $valid_func ];
+		} else if ( function_exists( $valid_func ) ) {
+			$callback = $valid_func;
+		} else {
+			$callback = 'wp_kses_post';
+		}
+		return $callback;
+	}
 
 
   /**  Data functions  **/
 
+	/**
+	 *  Determine 'current' property value
+	 *
+	 * @since 20150323
+	 * @used-by RMP_Form_Admin::load_form_page()
+	 */
 	private function determine_option() {
 		if ( $this->type === 'single' ) {
 			$this->current = $this->prefix . $this->slug;
 		} else if ( $this->type === 'tabbed' ) {
-			if ( isset( $this->form[ $this->tab ]['option'] ) ) {
+			if ( array_key_exists( 'option', $this->form[ $this->tab ] ) ) {
 				$this->current = $this->form[ $this->tab ]['option'];
 			} else {
 				$this->current = $this->prefix . $this->tab;
@@ -270,6 +409,14 @@ log_entry($controls);
 		}
 	}
 
+	/**
+	 *  Retrieve form fields default values.
+	 *
+	 * @since 20150323
+	 * @param string $option tabbed page option
+	 * @uses RMP_Trait_Logging::logg()
+	 * @return array
+	 */
 	protected function get_defaults( $option = '' ) {
 		if ( empty( $this->form ) ) {
 			$this->form = $this->form_layout();
@@ -282,8 +429,8 @@ log_entry($controls);
 				}
 				$defaults[ $ID ] = $item['default'];
 			}
-		} else {  #  tabbed page
-			if ( isset( $this->form[ $option ] ) ) {
+		} else {  //  tabbed page
+			if ( array_key_exists( $option, $this->form ) ) {
 				foreach( $this->form[ $option ]['layout'] as $key => $item ) {
 					if ( empty( $item['default'] ) ) {
 						continue;
@@ -291,12 +438,19 @@ log_entry($controls);
 					$defaults[ $key ] = $item['default'];
 				}
 			} else {
-				$this->logging( sprintf( $this->form_text['error']['subscript'], $option ), 'stack' );
+				$this->logg( sprintf( $this->form_text['error']['subscript'], $option ), 'stack' );
 			}
 		}
 		return $defaults;
 	} //*/
 
+	/**
+	 *  Retrieve theme/plugin option values
+	 *
+	 * @since 20150323
+	 * @see get_option()
+	 * @used-by RMP_Form_Admin::load_form_page()
+	 */
 	private function get_form_options() {
 		$this->form_opts = get_option( $this->current );
 		if ( empty( $this->form_opts ) ) {
@@ -307,150 +461,225 @@ log_entry($controls);
 	}
 
 
-  /**  Render Screen functions  **/
+	/**  Render Screen functions  **/
 
+	/**
+	 *  Render a non-tabbed screen
+	 *
+	 * @since 20150323
+	 * @see settings_errors()
+	 * @see do_action()
+	 * @see settings_fields()
+	 * @see do_settings_section()
+	 */
 	public function render_single_form() { ?>
 		<div class="wrap">
 			<?php settings_errors(); ?>
 			<form method="post" action="options.php"><?php
-#				do_action( 'form_admin_pre_display' );
-#				do_action( 'form_admin_pre_display_' . $this->current );
+				do_action( 'form_admin_pre_display_' . $this->current );
 				settings_fields( $this->current );
 				do_settings_sections( $this->current );
-#				do_action( 'form_admin_post_display_' . $this->current );
-#				do_action( 'form_admin_post_display' );
+				do_action( 'form_admin_post_display_' . $this->current );
 				$this->submit_buttons(); ?>
 			</form>
 		</div><?php //*/
 	}
 
-  public function render_tabbed_form() {
-    $active_page = sanitize_key($_GET['page']); ?>
-    <div class="wrap">
-      <div id="icon-themes" class="icon32"></div>
-      <h1 class='centered'>
-        <?php echo esc_html($this->form['title']); ?>
-      </h1><?php
-      settings_errors(); ?>
-      <h2 class="nav-tab-wrapper"><?php
-        $refer = "admin.php?page=$active_page";
-        foreach($this->form as $key=>$menu_item) {
-          if (is_string($menu_item)) continue;
-          $tab_css  = 'nav-tab';
-          $tab_css .= ($this->tab==$key) ? ' nav-tab-active' : '';
-          $tab_ref  = "$refer&tab=$key"; ?>
-          <a href='<?php echo esc_attr($tab_ref); ?>' class='<?php echo esc_attr($tab_css); ?>'>
-            <?php echo esc_html($menu_item['title']); ?>
-          </a><?php
-        } ?>
-      </h2>
-      <form method="post" action="options.php">
-        <input type='hidden' name='tab' value='<?php echo $this->tab; ?>'><?php
-        $current  = (isset($this->form[$this->tab]['option'])) ? $this->form[$this->tab]['option'] : $this->prefix.$this->tab;
-        do_action( "form_admin_pre_display_{$this->tab}" );
-        settings_fields($current);
-        do_settings_sections($current);
-        do_action("form_admin_post_display_{$this->tab}");
-        $this->submit_buttons($this->form[$this->tab]['title']); ?>
-      </form>
-    <div><?php //*/
-  }
+	/**
+	 *  Render a tabbed screen
+	 *
+	 * @since 20150323
+	 * @see sanitize_key()
+	 * @uses e_esc_html()
+	 * @see settings_errors()
+	 * @uses e_esc_attr()
+	 * @see do_action()
+	 * @see settings_fields()
+	 * @see do_settings_section()
+	 */
+	public function render_tabbed_form() {
+		$active_page = sanitize_key( $_GET['page'] ); ?>
+		<div class="wrap">
+			<div id="icon-themes" class="icon32"></div>
+			<h1 class='centered'><?php
+				e_esc_html( $this->form['title'] ); ?>
+			</h1><?php
+			settings_errors(); ?>
+			<h2 class="nav-tab-wrapper"><?php
+				$refer = "admin.php?page=$active_page";
+				foreach( $this->form as $key => $menu_item ) {
+					if ( is_string( $menu_item ) ) continue;
+					$tab_ref  = "$refer&tab=$key";
+					$tab_css  = 'nav-tab' . ( ( $this->tab === $key ) ? ' nav-tab-active' : '' ); ?>
+					<a href='<?php e_esc_attr( $tab_ref ); ?>' class='<?php e_esc_attr( $tab_css ); ?>'><?php
+						if ( ! empty( $menu_item['icon'] ) ) { ?>
+							<i class="dashicons <?php e_esc_attr( $menu_item['icon'] ); ?>"></i><?php
+						}
+						e_esc_html( $menu_item['title'] ); ?>
+					</a><?php
+				} ?>
+			</h2>
+			<form method="post" action="options.php">
+				<input type='hidden' name='tab' value='<?php e_esc_attr( $this->tab ); ?>'><?php
+				$current = ( array_key_exists( 'option', $this->form[ $this->tab ] ) ) ? $this->form[ $this->tab ]['option'] : $this->prefix . $this->tab;
+				do_action( "form_admin_pre_display_{$this->tab}" );
+				settings_fields( $current );
+				do_settings_sections( $current );
+				do_action( "form_admin_post_display_{$this->tab}" );
+				$this->submit_buttons( $this->form[ $this->tab ]['title'] ); ?>
+			</form>
+		<div><?php //*/
+	}
 
-  private function submit_buttons($title='') {
-    $buttons = $this->form_text['submit']; ?>
-    <p><?php
-      submit_button($buttons['save'],'primary','submit',false); ?>
-      <span style='float:right;'><?php
-        $object = (empty($title)) ? $buttons['object'] : $title;
-        $reset  = sprintf($buttons['reset'],$object);
-        submit_button($reset,'secondary','reset',false); ?>
-      </span>
-    </p><?php
-  }
+	/**
+	 *  Display form submit buttons.
+	 *
+	 * @since 20150323
+	 * @param string $title reset button text
+	 * @see submit_button()
+	 */
+	private function submit_buttons( $title = '' ) {
+		if ( ! array_key_exists( 'submit', $this->form_text ) ) { fluid()->log( 'stack' ); $this->form_text(); } // track down erratic bug
+		$buttons = $this->form_text['submit']; ?>
+		<p><?php
+			submit_button( $buttons['save'], 'primary', 'submit', false ); ?>
+			<span style='float:right;'><?php
+				$object = ( empty( $title ) ) ? $buttons['object'] : $title;
+				$reset  = sprintf( $buttons['reset'], $object );
+				submit_button( $reset, 'secondary', 'reset', false ); ?>
+			</span>
+		</p><?php
+	}
 
+	/**
+	 *  Render field on single form
+	 *
+	 * @since 20150323
+	 * @param array $args
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @uses e_esc_html()
+	 * @uses RMP_Trait_Logging::logg()
+	 */
 	public function render_single_options( $args ) {
-		extract( $args );  #  array( 'key'=>$key, 'item'=>$item, 'num'=>$i);
+		extract( $args );  #  array( 'key' => $key, 'item' => $item, 'num' => $i );
 		$data   = $this->form_opts;
 		$layout = $this->form['layout'];
-		echo '<div ' . $this->render_attributes( $layout[ $item ] ) . '>';
+		$this->tag( 'div', $this->render_attributes( $layout[ $item ] ) );
+			if ( empty( $layout[ $item ]['render'] ) ) {
+				e_esc_html( $data[ $item ] );
+			} else {
+				$func  = 'render_' . $layout[ $item ]['render'];
+				$name  = $this->current . '[' . $item . ']';
+				$value = ( array_key_exists( $item, $data ) ) ? $data[ $item ] : '';
+				if ( $layout[ $item ]['render'] === 'array' ) {
+					$name .= '[' . $num . ']';
+					#if ( isset( $add ) && $add ) { $layout[ $item ]['add'] = true; }
+					$value = ( array_key_exists( $num, $data[ $item ] ) ) ? $data[ $item ][ $num ] : '';
+				}
+				$field = str_replace( array( '[', ']' ), array( '_', '' ), $name );
+				$fargs = array(
+					'ID'     => $field,
+					'value'  => $value,
+					'layout' => $layout[ $item ],
+					'name'   => $name,
+				);
+				if ( method_exists( $this, $func ) ) {
+					$this->$func( $fargs );
+				} else if ( function_exists( $func ) ) {
+					$func( $fargs );
+				} else {
+					$this->logg( sprintf( $this->form_text['error']['render'], $func ) );
+				}
+			} ?>
+		</div><?php
+	}
+
+	/**
+	 *  Display fields on tabbed screens
+	 *
+	 * @since 20150323
+	 * @param array $args field identificatin information
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @uses e_esc_html()
+	 * @uses RMP_Trait_Logging::log()
+	 */
+	public function render_tabbed_options( $args ) {
+		extract( $args );  #  $args = array( 'key' => {group-slug}, 'item' => {item-slug} )
+		$data   = $this->form_opts;
+		$layout = $this->form[ $key ]['layout'];
+		$this->tag( 'div', $this->render_attributes( $layout[ $item ] ) );
 		if ( empty( $layout[ $item ]['render'] ) ) {
-			echo $data[ $item ];
+			e_esc_html( $data[$item] );
 		} else {
-			$func  = 'render_' . $layout[ $item ]['render'];
-			$name  = $this->current . '[' . $item . ']';
-			$value = ( isset( $data[ $item ] ) ) ? $data[ $item ] : '';
-			if ( $layout[ $item ]['render'] === 'array' ) {
-				$name .= '[' . $num . ']';
-				#if ( isset( $add ) && $add ) { $layout[ $item ]['add'] = true; }
-				$value = ( isset( $data[ $item ][ $num ] ) ) ? $data[ $item ][ $num ] : '';
+			$func = "render_{$layout[$item]['render']}";
+			$name = $this->current . "[$item]";
+			if ( ! array_key_exists( $item, $data ) ) {
+				$data[ $item ] = ( empty( $layout[ $item ]['default'])) ? '' : $layout[ $item ]['default'];
 			}
-			$field = str_replace( array( '[', ']' ), array( '_', '' ), $name );
 			$fargs = array(
-				'ID'     => $field,
-				'value'  => $value,
+				'ID'     => $item,
+				'value'  => $data[ $item ],
 				'layout' => $layout[ $item ],
-				'name'   => $name,
+				'name'   => $name
 			);
 			if ( method_exists( $this, $func ) ) {
 				$this->$func( $fargs );
-			} else if ( function_exists( $func ) ) {
+			} elseif ( function_exists( $func ) ) {
 				$func( $fargs );
 			} else {
-				$this->logging( sprintf( $this->form_text['error']['render'], $func ) );
+				$this->log( sprintf( $this->form_text['error']['render'], $func ) );
 			}
 		}
-		echo '</div>';
+		echo "</div>"; //*/
 	}
 
-  public function render_tabbed_options($args) {
-    extract($args);  #  $args = array( 'key' => {group-slug}, 'item' => {item-slug})
-    $data   = $this->form_opts;
-    $layout = $this->form[$key]['layout'];
-    $attr   = $this->render_attributes($layout[$item]);
-    echo "<div $attr>";
-    if (empty($layout[$item]['render'])) {
-      echo $data[$item];
-    } else {
-      $func = "render_{$layout[$item]['render']}";
-      $name = $this->current."[$item]";
-      if (!isset($data[$item])) $data[$item] = (empty($layout[$item]['default'])) ? '' : $layout[$item]['default'];
-      $fargs = array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name);
-      if (method_exists($this,$func)) {
-        $this->$func($fargs);
-      } elseif (function_exists($func)) {
-        $func($fargs);
-      } else {
-        $this->logging( sprintf( $this->form_text['error']['render'], $func ) );
-      }
-    }
-    echo "</div>"; //*/
-  }
+	/**
+	 *  Render fields on multiple screen form
+	 *
+	 * @since 20150323
+	 * @param array $args
+	 */
+	public function render_multi_options( $args ) {
+	}
 
-  public function render_multi_options($args) {
-  }
-
-	private function render_attributes($layout) {
-		$attr = ( ! empty( $layout['divcss'] ) )  ? ' class="' . esc_attr( $layout['divcss'] ).'"'   : '';
-		$attr.= ( isset( $layout['help'] ) )      ? ' title="' . esc_attr( $layout['help']   ).'"'   : '';
+	/**
+	 *  Determine field attributes
+	 *
+	 * @since 20161206
+	 * @param array $layout field characteristics
+	 * @return array
+	 */
+	private function render_attributes( $layout ) {
+		$attrs = array();
+		$attrs['class'] = ( ! empty( $layout['divcss'] ) ) ? $layout['divcss'] : '';
+		$attrs['title'] = ( array_key_exists( 'help', $layout ) )     ? $layout['help']   : '';
 		if ( ! empty( $layout['showhide'] ) ) {
-			$attr.= ' data-item="' . esc_attr( $layout['showhide']['item'] ) . '"';
-			$attr.= ' data-show="' . esc_attr( $layout['showhide']['show'] ) . '"';
+			$state = array_merge( [ 'show' => null, 'hide' => null ], $layout['showhide'] );
+			$attrs['data-item'] = ( array_key_exists( 'item', $state ) ) ? $state['item'] : $state['target'];
+			$attrs['data-show'] = $state['show'];
+			$attrs['data-hide'] = $state['hide'];
 		}
-		return $attr;
+		return $attrs;
 	}
 
 
-  /**  Render Items functions
-    *
-    *
-    *  $data = array('ID'=>$field, 'value'=>$value, 'layout'=>$layout[$item], 'name'=>$name);
-    *
-    **/
+	/*  Render Items functions
+	 *
+	 *
+	 *  $data = array('ID'=>$field, 'value'=>$value, 'layout'=>$layout[$item], 'name'=>$name);
+	 *
+	 **/
 
-	// FIXME:  needs add/delete/sort
+	/**
+	 *  Render an array
+	 *
+	 * @since 20150927
+	 * @param array $data field information
+	 * @todo needs add/delete/sort
+	 */
 	private function render_array( $data ) {
-		extract( $data );  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-		if ( ! isset( $layout['type'] ) ) { $layout['type'] = 'text'; }
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		if ( ! array_key_exists( 'type', $layout ) ) { $layout['type'] = 'text'; }
 		if ( $layout['type'] === 'image' ) {
 			$this->render_image( $data );
 		} else {
@@ -458,155 +687,254 @@ log_entry($controls);
 		}
 	}
 
+	/**
+	 *  Render a checkbox field
+	 *
+	 * @since 20150323
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::checked()
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @uses e_esc_html()
+	 */
 	private function render_checkbox( $data ) {
-		extract( $data );	#	associative array: keys are 'ID', 'value', 'layout', 'name'
-		$onchange = ( isset( $layout['change'] ) ) ? $layout['change'] : ''; ?>
+		extract( $data );  #  associative array: keys are 'ID', 'value', 'layout', 'name'
+		$attrs = array(
+			'type' => 'checkbox',
+			'id'   => $ID,
+			'name' => $name,
+			'value' => 'yes',
+			'onchange' => ( array_key_exists( 'change', $layout ) ) ? $layout['change'] : '',
+		);
+		$this->checked( $attrs, $value, 'yes' ); ?>
 		<label>
-			<input type="checkbox"
-			       id="<?php echo esc_attr( $ID ); ?>"
-			       name="<?php echo esc_attr( $name ); ?>"
-			       value="yes"
-			       <?php checked( $value ); ?>
-			       onchange="<?php echo esc_attr( $onchange ); ?>" />&nbsp;
+			<?php $this->tag( 'input', $attrs ); ?>&nbsp;
 			<span>
-				<?php echo esc_html( $layout['text'] ); ?>
+				<?php e_esc_html( $layout['text'] ); ?>
 			</span>
 		</label><?php
 	}
 
+	/**
+	 *  Render a multiple checkbox field
+	 *
+	 * @since 20170202
+	 * @param array $data field information
+	 * @uses e_esc_html()
+	 * @uses RMP_Trait_Attributes::checked()
+	 * @uses RMP_Trait_Attributes::tag()
+	 */
 	private function render_checkbox_multiple( $data ) {
-		extract( $data );	#	associative array: keys are 'ID', 'value', 'layout', 'name'
-		if ( empty( $layout['source'] ) ) return;
+		extract( $data );  #  associative array: keys are 'ID', 'value', 'layout', 'name'
+		if ( empty( $layout['source'] ) ) {
+			return;
+		}
+		if ( ! empty( $layout['text'] ) ) { ?>
+			<div>
+				<?php e_esc_html( $layout['text'] ); ?>
+			</div><?php
+		}
 		foreach( $layout['source'] as $key => $text ) {
-			$check = isset( $value[ $key ] ) ? true : false; ?>
+			$attrs = array(
+				'type'  => 'checkbox',
+				'id'    => $ID . '-' . $key,
+				'name'  => $name . '[' . $key . ']',
+				'value' => $key,
+			);
+			$check = array_key_exists( $key, $value ) ? true : false;
+			$this->checked( $attrs, $check ); ?>
 			<div>
 				<label>
-					<input type="checkbox"
-					       id="<?php echo esc_attr( $ID.'-'.$key ); ?>"
-					       name="<?php echo esc_attr( $name.'['.$key.']' ); ?>"
-					       value="yes" <?php checked( $check ); ?> />&nbsp;
+					<?php $this->tag( 'input', $attrs ); ?>&nbsp;
 					<span>
-						<?php echo esc_html( $text ); ?>
+						<?php e_esc_html( $text ); ?>
 					</span>
 				</label>
 			</div><?php
 		}
 	}
 
+	/**
+	 *  Render colorpicker field
+	 *
+	 * @since 20150927
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::element()
+	 * @uses e_esc_html()
+	 */
 	private function render_colorpicker($data) {
-		extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-		$text = ( ! empty( $layout['text'] ) ) ? $layout['text'] : ''; ?>
-		<input type="text" class="form-colorpicker"
-		       name="<?php e_esc_attr( $name ); ?>"
-		       value="<?php e_esc_attr( $value ); ?>"
-		       data-default-color="<?php e_esc_attr( $layout['default'] ); ?>" />&nbsp;<?php
-		if ( ! empty( $text ) ) { ?>
-			<span class="form-colorpicker-text">
-				<?php e_esc_html( $text ); ?>
-			</span><?php
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		$attrs = array(
+			'type'  => 'text',
+			'class' => 'form-colorpicker',
+			'name'  => $name,
+			'value' => $value,
+			'data-default-color' => $layout['default']
+		);
+		$this->element( 'input', $attrs );
+		$text = ( ! empty( $layout['text'] ) ) ? $layout['text'] : '';
+		if ( ! empty( $text ) ) {
+			e_esc_html( '&nbsp;' );
+			$this->element( 'span', [ 'class' => 'form-colorpicker-text' ], $text );
 		}
 	}
 
-  private function render_display($data) {
-    extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-    if (isset($layout['default']) && !empty($value)) echo $value;
-    if (!empty($layout['text'])) echo " <span>{$layout['text']}</span>";
-  }
+	/**
+	 *  Display a field as text
+	 *
+	 * @since 20160201
+	 * @uses e_esc_html()
+	 * @uses RMP_Trait_Attributes::element()
+	 */
+	private function render_display( $data ) {
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		if ( array_key_exists( 'default', $layout ) && ! empty( $value ) ) {
+			e_esc_html( $value );
+		}
+		if ( ! empty( $layout['text'] ) ) {
+			$this->element( 'span', [ ], ' ' . $layout['text'] );
+		}
+	}
 
-  private function render_font($data) {
-    extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-    $html = "<select id='$ID' name='{$name}[]' multiple";
-    $html.= (isset($layout['change'])) ? " onchange='{$layout['change']}'>" : ">";
-    foreach($layout['source'] as $key=>$text) {
-      $html.= "<option value='$key'";
-      $html.= ($key===$value) ? " selected='selected'" : '';
-      $html.= "> $key </option>";
-    }
-    $html.= '</select>';
-    $html.= (!empty($data['layout']['text'])) ? "<span class=''> {$data['layout']['text']}</span>" : '';
-    echo $html;
-  }
-
-	private function render_image( $data ) {
+	/**
+	 *  Render a font selection field
+	 *
+	 * @since 20160203
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @uses RMP_Trait_Attributes::selected()
+	 * @uses RMP_Trait_Attributes::element()
+	 */
+	private function render_font( $data ) {
 		extract( $data );  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
+		$attrs = array(
+			'id'       => $ID,
+			'name'     => "{$name}[]",
+			'multiple' => ''
+		);
+		if ( array_key_exists( 'change', $layout ) ) {
+			$attrs['onchange'] = $layout['change'];
+		}
+		$this->tag( 'select', $attrs );
+			foreach( $layout['source'] as $key => $text ) {
+				$attrs = [ 'value' => $key ];
+				$this->selected( $attrs, $key, $value );
+				$this->element( 'option', $attrs, ' ' . $key . ' ' );
+			} ?>
+		</select><?php
+		if ( ! empty( $data['layout']['text'] ) ) {
+			$this->element( 'span', [ ], ' ' . $data['layout']['text'] );
+		}
+	}
+
+	/**
+	 *  Render an image on the form
+	 *
+	 * @since 20150925
+	 * @param array $data
+	 * @uses e_esc_attr()
+	 * @uses e_esc_html()
+	 * @todo make use of Attributes Trait
+	 */
+	private function render_image( $data ) {
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
 		$media   = $this->form_text['media'];
 		$img_css = 'form-image-container' . ( ( empty( $value ) ) ? ' hidden' : '');
 		$btn_css = 'form-image-delete' . ( ( empty( $value ) ) ? ' hidden' : '');
-		if ( isset( $layout['media'] ) ) { $media = array_merge( $media, $layout['media'] ); } ?>
+		if ( array_key_exists( 'media', $layout ) ) { $media = array_merge( $media, $layout['media'] ); } ?>
 		<div data-title="<?php e_esc_attr( $media['title'] ); ?>"
 			  data-button="<?php e_esc_attr( $media['button'] ); ?>" data-field="<?php e_esc_attr( $ID ); ?>">
 			<button type="button" class="form-image">
 				<?php e_esc_html( $media['button'] ); ?>
 			</button>
 			<input id="<?php e_esc_attr( $ID ); ?>_input" type="text" class="hidden" name="<?php e_esc_attr( $name ); ?>" value="<?php e_esc_html( $value ); ?>" />
-			<div class="<?php echo $img_css; ?>">
+			<div class="<?php e_esc_attr( $img_css ); ?>">
 				<img id="<?php e_esc_attr( $ID ); ?>_img" src="<?php e_esc_attr( $value ); ?>" alt="<?php e_esc_attr( $value ); ?>">
 			</div>
-			<button type="button" class="<?php echo $btn_css; ?>">
+			<button type="button" class="<?php e_esc_attr( $btn_css ); ?>">
 				<?php e_esc_html( $media['delete'] ); ?>
 			</button>
 		</div><?php
 	}
 
+	/**
+	 *  Render radio field
+	 *
+	 * @since 20160201
+	 * @uses RMP_Trait_Attributes::element()
+	 * @uses RMP_Trait_Attributes::checked()
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @see wp_kses()
+	 * @uses RMP_Theme_Library::kses()
+	 * @uses e_esc_html()
+	 */
 	private function render_radio($data) {
-		extract( $data );	#	associative array: keys are 'ID', 'value', 'layout', 'name'
+		extract( $data );  #  associative array: keys are 'ID', 'value', 'layout', 'name'
 		if ( empty( $layout['source'] ) ) return;
-		$uniq        = uniqid();
-		$tooltip     = ( isset( $layout['help'] ) )    ? $layout['help']    : '';
-		$before_text = ( isset( $layout['text'] ) )    ? $layout['text']    : '';
-		$after_text  = ( isset( $layout['postext'] ) ) ? $layout['postext'] : '';
 		$radio_attrs = array(
-			'type' => 'radio',
-			'name' => $name,
-			'onchange' => ( isset( $layout['change'] ) ) ? $layout['change']  : '',
-			'aria-describedby' => $uniq,
+			'type'     => 'radio',
+			'name'     => $name,
+			'onchange' => ( array_key_exists( 'change', $layout ) ) ? $layout['change'] : '',
 		); ?>
-		<div title="<?php echo esc_attr( $tooltip ); ?>">
-			<div id="<?php echo $uniq; ?>">
-				<?php echo esc_html( $before_text ); ?>
-			</div><?php
+		<div><?php
+			if ( array_key_exists( 'text', $layout ) ) {
+				$uniq = uniqid();
+				$this->element( 'div', [ 'id' => $uniq ], $layout['text'] );
+				$radio_attrs['aria-describedby'] = $uniq;
+			}
 			foreach( $layout['source'] as $key => $text ) {
-				$radio_attrs['value'] = $key; ?>
+				$radio_attrs['value'] = $key;
+				$this->checked( $radio_attrs, $value, $key ); ?>
 				<div>
-					<label>
-						<input <?php $this->library->apply_attrs( $radio_attrs ); ?> <?php checked( $value, $key ); ?>><?php
-						if ( isset( $layout['src-html'] ) ) {
-							// FIXME:  this is here so I can display font awesome icons - it needs to be done differently
-							echo $text;
+					<label><?php
+						$this->tag( 'input', $radio_attrs );
+						if ( array_key_exists( 'src-html', $layout ) ) {
+							echo wp_kses( $text, fluid()->kses() );
 						} else {
-							echo esc_html( $text );
+							e_esc_html( $text );
 						}
-						if ( isset( $layout['extra_html'][ $key ] ) ) {
-							echo $layout['extra_html'][ $key ];
+						if ( array_key_exists( 'extra_html', $layout ) && array_key_exists( $key, $layout['extra_html'] ) ) {
+							echo wp_kses( $layout['extra_html'][ $key ], fluid()->kses() );
 						} ?>
 					</label>
 				</div><?php
+			}
+			if ( array_key_exists( 'postext', $layout ) ) { ?>
+				<div>
+					<?php e_esc_html( $layout['postext'] ) ; ?>
+				</div><?php
 			} ?>
-			<div>
-				<?php echo esc_html( $after_text ) ; ?>
-			</div>
 		</div><?php
-	} //*/
+	}
 
-	#	Note:  this has limited use - only displays yes/no radios
+	/**
+	 *  Render multiple radio fields - this has limited use - only displays yes/no radios
+	 *
+	 * @since 20170202
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::element()
+	 * @see esc_html_e()
+	 * @see esc_attr()
+	 * @see checked()
+	 * @see wp_kses()
+	 * @uses RMP_Theme_Library::kses()
+	 * @uses e_esc_html()
+	 */
 	private function render_radio_multiple( $data ) {
 		extract( $data );   #   associative array: keys are 'ID', 'value', 'layout', 'name'
-		if ( empty( $layout['source'] ) ) return;
-		$tooltip   = ( isset( $layout['help'] ) )    ? $layout['help']    : '';
-		$pre_css   = ( isset( $layout['textcss'] ) ) ? $layout['textcss'] : '';
-		$pre_text  = ( isset( $layout['text'] ) )    ? $layout['text']    : '';
-		$post_text = ( isset( $layout['postext'] ) ) ? $layout['postext'] : '';
-		$preset    = ( isset( $layout['preset'] ) )  ? $layout['preset']  : 'no'; ?>
-		<div class="radio-multiple-div" title="<?php echo esc_attr( $tooltip ); ?>">
-			<div class="<?php echo $pre_css; ?>">
-				<?php e_esc_html( $pre_text ); ?>
-			</div>
+		if ( empty( $layout['source'] ) )
+			return;
+		$pre_css   = ( array_key_exists( 'textcss', $layout ) ) ? $layout['textcss'] : '';
+		$pre_text  = ( array_key_exists( 'text',    $layout ) ) ? $layout['text']    : '';
+		$post_text = ( array_key_exists( 'postext', $layout ) ) ? $layout['postext'] : '';
+		$preset    = ( array_key_exists( 'preset',  $layout ) ) ? $layout['preset']  : 'no'; ?>
+		<div class="radio-multiple-div">
+			<?php $this->element( 'div', [ 'class' => $pre_css ], $pre_text ); ?>
 			<div class="radio-multiple-header">
-				<span class="radio-multiple-yes"><?php esc_html_e( 'Yes',  'rmp-restmenu' ); ?></span>&nbsp;
+				<span class="radio-multiple-yes"><?php esc_html_e( 'Yes', 'rmp-restmenu' ); ?></span>&nbsp;
 				<span class="radio-multiple-no" ><?php esc_html_e( 'No', 'rmp-restmenu' ); ?></span>
 			</div><?php
 			foreach( $layout['source'] as $key => $text ) {
-				$check  = ( isset( $value[ $key ] ) ) ? $value[ $key ] : $preset; ?>
+				$check  = ( array_key_exists( $key, $value ) ) ? $value[ $key ] : $preset; ?>
 				<div class="radio-multiple-list-item">
 					<label>
 						<input type="radio" value="yes" class="radio-multiple-list radio-multiple-list-yes"
@@ -616,115 +944,173 @@ log_entry($controls);
 						       name="<?php echo esc_attr( $name.'['.$key.']' ) ; ?>"
 						       <?php checked( $check, 'no' ); ?> />
 						<span class="radio-multiple-list-text">
-							<?php echo $text; ?>
+							<?php echo wp_kses( $text, fluid()->kses() ); ?>
 						</span>
 					</label>
 				</div><?php
 			} ?>
 			<div class="radio-multiple-post-text">
-				<?php echo esc_html( $post_text ) ; ?>
+				<?php e_esc_html( $post_text ) ; ?>
 			</div>
 		</div><?php
 	}
 
-  private function render_select($data) {
-    extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-    if (empty($layout['source'])) return;
-    $source_func = $layout['source'];
-    if (!empty($layout['text'])) echo '<div class="form-select-text"> ' . esc_attr( $layout['text'] ) . '</div>';
-    $html = "<select id='$ID' name='$name'";
-    $html.= ( strpos( '[]', $name ) )  ? ' multiple="multiple"' : '';
-    $html.= (isset($layout['change'])) ? " onchange='{$layout['change']}'>" : ">";
-    echo $html;
-    if (is_array($source_func)) {
-      foreach($source_func as $key=>$text) {
-        $select = ( in_array( $key, (array)$value ) ) ? "selected='selected'" : '';
-        echo "<option value='$key' $select> $text </option>";
-      }
-    } elseif (method_exists($this,$source_func)) {
-      $this->$source_func($value);
-    } elseif (function_exists($source_func)) {
-      $source_func($value);
-    }
-    echo '</select>';
-  }
-
-	private function render_select_multiple( $data ) {
-		$data['name'] .= '[]';
-		render_select( $data );
+	/**
+	 *  Render a select field
+	 *
+	 * @since 20150323
+	 * @param array $data
+	 * @uses RMP_Trait_Attributes::element()
+	 * @uses RMP_Trait_Attributes::tag()
+	 * @uses RMP_Trait_Attributes::selected()
+	 */
+	private function render_select( $data ) {
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		if ( empty( $layout['source'] ) ) {
+			return;
+		}
+		if ( ! empty( $layout['text'] ) ) {
+			$this->element( 'div', [ 'class' => 'form-select-text' ], $layout['text'] );
+		}
+		$attrs = array(
+			'id'   => $ID,
+			'name' => $name
+		);
+		if ( ! ( strpos( '[]', $name ) === false ) ) {
+			$attrs['multiple'] = 'multiple';
+		}
+		if ( array_key_exists( 'change', $layout ) ) {
+			$attrs['onchange'] = $layout['change'];
+		}
+		$this->tag( 'select', $attrs );
+			$source_func = $layout['source'];
+			if ( is_array( $source_func ) ) {
+				foreach( $source_func as $key => $text ) {
+					$attrs = [ 'value' => $key ];
+					$this->selected( $attrs, $key, $value );
+					$this->element( 'option', $attrs, ' ' . $text . ' ' );
+				}
+			} elseif ( method_exists( $this, $source_func ) ) {
+				$this->$source_func( $value );
+			} elseif ( function_exists( $source_func ) ) {
+				$source_func( $value );
+			} ?>
+		</select><?php
 	}
 
+	/**
+	 *  Render a field with multiple selects
+	 *
+	 * @since 20170228
+	 * @see array $data field information
+	 */
+	private function render_select_multiple( $data ) {
+		$data['name'] .= '[]';
+		$this->render_select( $data );
+	}
+
+	/**
+	 *  Render spinner
+	 *
+	 * @since 20170126
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::element()
+	 * @uses e_esc_html()
+	 */
 	private function render_spinner( $data ) {
-		extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-		$tooltip = ( isset( $layout['help'] ) ) ? $layout['help'] : '';
-/*		$attrs = array(
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		$attrs = array(
+			'type'  => 'number',
+			'class' => 'small-text',
 			'id'    => $ID,
 			'name'  => $name,
-			'title' => $tooltip,
-			'value' => $value, */
-
- ?>
-		<input type="number" class="small-text" min="1" step="1"
-		       id="<?php e_esc_attr( $ID ); ?>"
-		       name="<?php e_esc_attr( $name ); ?>"
-		       title="<?php e_esc_attr( $tooltip ); ?>"
-		       value="<?php e_esc_attr( sanitize_text_field( $value ) ); ?>" /> <?php
+			'min'   => '1',
+			'step'  => '1',
+			'value' => $value,
+		);
+		$this->element( 'input', $attrs );
 		if ( ! empty( $layout['stext'] ) ) { e_esc_attr( $layout['stext'] ); }
 	}
 
+	/**
+	 *  Render text on the form
+	 *
+	 * @since 20150323
+	 * @param array $data field information
+	 * @uses RMP_Trait_Attributes::element()
+	 * @uses e_esc_html()
+	 */
 	private function render_text( $data ) {
-		extract( $data );  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-		$html = (!empty($layout['text']))  ? "<p> ".esc_attr($layout['text'])."</p>" : "";
-/*
-		$html.= '<input type="text"';
+		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		if ( ! empty( $layout['text'] ) ) {
+			$this->element( 'p', [ ], ' ' . $layout['text'] );
+		}
 		$attrs = array(
-			'id' => $ID,
-			'class' => ( isset( $layout['class'] ) )  ? $layout['class'] : 'regular-text';
+			'type'  => 'text',
+			'id'    => $ID,
+			'class' => ( array_key_exists( 'class', $layout ) )  ? $layout['class'] : 'regular-text',
 			'name'  => $name,
 			'value' => $value,
-			'title' => ( isset( $layout['help'] ) )   ? $layout['help']  : '';
-			'placeholder' => ( isset( $layout['place'] ) ) ? $layout['place'] : '';
-			'onchange' => ( isset( $layout['change'] ) ) ? $layout['change']  : '';
+			'title' => ( array_key_exists( 'help', $layout ) )   ? $layout['help']  : '',
+			'placeholder' => ( array_key_exists( 'place',  $layout ) ) ? $layout['place'] : '',
+			'onchange'    => ( array_key_exists( 'change', $layout ) ) ? $layout['change']  : '',
+		);
+		$this->element( 'input', $attrs );
+		if ( ! empty( $layout['stext'] ) ) {
+			e_esc_html( ' ' . $layout['stext'] );
+		}
+		if ( ! empty( $layout['etext'] ) ) {
+			$this->element( 'p', [ ], ' ' . $layout['etext'] );
+		}
+	}
 
-
-
-//*/
-
-    $html.= "<input type='text' id='$ID' class='";
-    $html.= (isset($layout['class']))  ? esc_attr($layout['class'])."'" : "regular-text'";
-    $html.= " name='$name' value='".esc_attr(sanitize_text_field($value))."'";
-    $html.= (isset($layout['help']))   ? " title='".esc_attr($layout['help'])."'"        : "";
-    $html.= (isset($layout['place']))  ? " placeholder='".esc_attr($layout['place'])."'" : "";
-    $html.= (isset($layout['change'])) ? " onchange='{$layout['change']}' />"            : "/>";
-    $html.= (!empty($layout['stext'])) ? ' '.esc_attr($layout['stext'])                  : "";
-    $html.= (!empty($layout['etext'])) ? "<p> ".esc_attr($layout['etext'])."</p>"        : "";
-    echo $html;
-  }
-
+	/**
+	 *  Render color picker field with text
+	 *
+	 * @since 20170809
+	 * @param array $data field information
+	 */
 	private function render_text_color( $data ) {
 		$this->render_text( $data );
 		$basic = explode( '[', $data['name'] );
 		$index = substr( $basic[1], 0, -1 ) . '_color';
 		$data['name']  = $basic[0] . '[' . $index . ']';
-		$data['value'] = ( isset( $this->form_opts[ $index ] ) ) ? $this->form_opts[ $index ] : $data['layout']['color'];
+		$data['value'] = ( array_key_exists( $index, $this->form_opts ) ) ? $this->form_opts[ $index ] : $data['layout']['color'];
 		$data['layout']['default'] = $data['layout']['color'];
 		$data['layout']['text']    = '';
 		$this->render_colorpicker( $data );
 	}
 
-  private function render_title($data) {
-    extract($data);  #  array('ID'=>$item, 'value'=>$data[$item], 'layout'=>$layout[$item], 'name'=>$name)
-    if (!empty($layout['text'])) {
-      $data['layout']['text'] = "<b>{$layout['text']}</b>"; }
-    $this->render_display($data);
-  }
+	/**
+	 *  Alias for render_display()
+	 *
+	 * @since 20160201
+	 * @param array $data field information
+	 */
+	private function render_title( $data ) {
+/*		extract( $data );  #  array( 'ID' => $item, 'value' => $data[ $item ], 'layout' => $layout[ $item ], 'name' => $name )
+		if ( ! empty( $layout['text'] ) ) {
+			$data['layout']['text'] = "<b>{$layout['text']}</b>";
+		} */
+		$this->render_display( $data );
+	}
 
-  /**  Validate functions  **/
+	/**  Validate functions  **/
 
+	/**
+	 *  Handles validation for single form fields
+	 *
+	 * @since 20150323
+	 * @param array $input input field list
+	 * @see add_settings_error()
+	 * @see apply_filters()
+	 * @return array validated fields
+	 * @todo notify user of missing required fields
+	 */
 	public function validate_single_form( $input ) {
 		$output = $this->get_defaults();
-		if ( isset( $_POST['reset'] ) ) {
-			$object = ( isset( $this->form['title'] ) ) ? $this->form['title'] : $this->form_test['submit']['object'];
+		if ( array_key_exists( 'reset', $_POST ) ) {
+			$object = ( array_key_exists( 'title', $this->form ) ) ? $this->form['title'] : $this->form_test['submit']['object'];
 			$string = sprintf( $this->form_text['submit']['restore'], $object );
 			add_settings_error( $this->slug, 'restore_defaults', $string, 'updated fade' );
 			return $output;
@@ -733,7 +1119,7 @@ log_entry($controls);
 			$item = $this->form['layout'][ $ID ];
 			$multiple = array( 'array', 'radio_multiple' );
 			if ( in_array( $item['render'], $multiple ) ) {
-				$item['render'] = ( isset( $item['type'] ) ) ? $item['type'] : 'text';
+				$item['render'] = ( array_key_exists( 'type', $item ) ) ? $item['type'] : 'text';
 				$vals = array();
 				foreach( $data as $key => $indiv ) {
 					$vals[ $key ] = $this->do_validate_function( $indiv, $item );
@@ -745,7 +1131,7 @@ log_entry($controls);
 		}
 		// check for required fields FIXME: notify user
 		foreach( $this->form['layout'] as $ID => $item ) {
-			if ( is_array( $item ) && isset( $item['require'] ) ) {
+			if ( is_array( $item ) && array_key_exists( 'require', $item ) && $item['require'] ) {
 				if ( empty( $output[ $ID ] ) ) {
 					$output[ $ID ] = $item['default'];
 				}
@@ -754,99 +1140,242 @@ log_entry($controls);
 		return apply_filters( "{$this->slug}_validate_settings", $output, $input );
 	}
 
-  public function validate_tabbed_form($input) {
-    $option = sanitize_key($_POST['tab']);
-    $output = $this->get_defaults($option);
-    if (isset($_POST['reset'])) {
-      $object = (isset($this->form[$option]['title'])) ? $this->form[$option]['title'] : $this->form_test['submit']['object'];
-      $string = sprintf($this->form_text['submit']['restore'],$object);
-      add_settings_error('creatom','restore_defaults',$string,'updated fade');
-      return $output;
-    }
-    foreach($input as $key=>$data) {
-      $item = (isset($this->form[$option]['layout'][$key])) ? $this->form[$option]['layout'][$key] : array();
-      if ((array)$data==$data) {
-        foreach($data as $ID=>$subdata) {
-          $output[$key][$ID] = $this->do_validate_function($subdata,$item);
-        }
-      } else {
-        $output[$key] = $this->do_validate_function($data,$item);
-      }
-    }
-    return apply_filters($this->current.'_validate_settings',$output,$input);
-  }
+	/**
+	 *  Handles validation for tabbed form fields
+	 *
+	 * @since 20150927
+	 * @param array $input incoming field values
+	 * @see sanitize_key()
+	 * @see add_settings_error()
+	 * @see apply_filters()
+	 * @return array validated field values
+	 */
+	public function validate_tabbed_form( $input ) {
+		$option = sanitize_key( $_POST['tab'] );
+		$output = $this->get_defaults( $option );
+		if ( array_key_exists( 'reset', $_POST ) ) {
+			$object = ( array_key_exists( 'title', $this->form[ $option ] ) ) ? $this->form[ $option ]['title'] : $this->form_test['submit']['object'];
+			$string = sprintf( $this->form_text['submit']['restore'], $object );
+			add_settings_error( $this->slug, 'restore_defaults', $string, 'updated fade' );
+			return $output;
+		}
+		foreach( $input as $key => $data ) {
+			$item = ( array_key_exists( $key, $this->form[ $option ]['layout'] ) ) ? $this->form[ $option ]['layout'][ $key ] : array();
+			if ( (array)$data === $data ) {
+				foreach( $data as $ID => $subdata ) {
+					$output[ $key ][ $ID ] = $this->do_validate_function( $subdata, $item );
+				}
+			} else {
+				$output[ $key ] = $this->do_validate_function( $data, $item );
+			}
+		}
+		return apply_filters( $this->current . '_validate_settings', $output, $input );
+	}
 
+	/**
+	 *  Execute validation callback function
+	 *
+	 * @since 20150323
+	 * @param mixed $input data being validated
+	 * @param array $item field information
+	 * @uses RMP_Trait_Logging::logg()
+	 */
 	private function do_validate_function( $input, $item ) {
 		if ( empty( $item['render'] ) ) {
 			$item['render'] = 'non_existing_render_type';
 		}
-		$func = ( isset( $item['validate'] ) ) ? $item['validate'] : 'validate_' . $item['render'];
+		$func = ( array_key_exists( 'validate', $item ) ) ? $item['validate'] : 'validate_' . $item['render'];
 		if ( method_exists( $this, $func ) ) {
 			$output = $this->$func( $input );
 		} elseif ( function_exists( $func ) ) {
 			$output = $func( $input );
 		} else { // FIXME:  test for data type?
 			$output = $this->validate_text( $input );
-			$this->logging( 'missing validation function: ' . $func );
+			$this->logg( 'missing validation function: ' . $func, $item, $input );
 		}
 		return $output;
 	}
 
-  private function validate_colorpicker($input) {
-    return (preg_match('|^#([A-Fa-f0-9]{3}){1,2}$|',$input)) ? $input : '';
-  }
+	/**
+	 *  Validate checkbox field
+	 *
+	 * @since 20180307
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_checkbox( $input ) {
+		return sanitize_key( $input );
+	}
 
+	/**
+	 *  Validate multiple checkbox field
+	 *
+	 * @since 20180307
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_checkbox_multiple( $input ) {
+		return sanitize_key( $input );
+	}
+
+	/**
+	 *  Validate colorpicker field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_colorpicker( $input ) {
+		return ( preg_match( '|^#([A-Fa-f0-9]{3}){1,2}$|', $input ) ) ? $input : '';
+	}
+
+	/**
+	 *  Validate font field value
+	 *
+	 * @since 20170228
+	 * @param string $input
+	 * @return string
+	 */
 	private function validate_font( $input ) {
-		$this->logging( $input );
+		$this->logging_force = true;
+		$this->logg( $input ); // TODO: compare value to available fonts
 		return $input; // FIXME NOW!
 	}
 
-  private function validate_image($input) {
-    return esc_url_raw(strip_tags(stripslashes($input)));
-  }
+	/**
+	 *  Validate image field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_image( $input ) {
+		return apply_filters( 'pre_link_image', $input );
+	}
 
-  private function validate_post_content($input) {
-    return wp_kses_post($input);
-  }
+	/**
+	 *  Validate content field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_post_content( $input ) {
+		return wp_kses_post( $input );
+	}
 
-  private function validate_radio($input) {
-    return sanitize_key($input);
-  }
+	/**
+	 *  Validate radio field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_radio( $input ) {
+		return sanitize_key( $input );
+	}
 
+	/**
+	 *  Validate multiple radio fields
+	 *
+	 * @since 20170228
+	 * @param string $input
+	 * @return string
+	 */
 	private function validate_radio_multiple( $input ) {
 		return $this->validate_radio( $input );
 	}
 
-  private function validate_select($input) {
-    return sanitize_file_name($input);
-  }
+	/**
+	 *  Validate select field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_select( $input ) {
+		return sanitize_file_name( $input );
+	}
 
+	/**
+	 *  Validate select field with multiple values
+	 *
+	 * @since 20170228
+	 * @param string $input
+	 * @return string
+	 */
 	private function validate_select_multiple( $input ) {
 		return array_map( array( $this, 'validate_select' ), $input ); // FIXME
 	}
 
+	/**
+	 *  Validate spinner field value
+	 *
+	 * @since 20170305
+	 * @param string $input
+	 * @return string
+	 */
 	private function validate_spinner( $input ) {
 		return $this->validate_text( $input );
 	}
 
+	/**
+	 *  Validate text field value
+	 *
+	 * @since 20170305
+	 * @param string $input
+	 * @return string
+	 */
 	protected function validate_text( $input ) {
-		return strip_tags( stripslashes( $input ) );
+		return wp_kses_data( $input );
 	}
 
-  private function validate_text_color($input) {
-    return $this->validate_text($input);
-  }
+	/**
+	 *  Validate text color field value
+	 *
+	 * @since 20160910
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_text_color( $input ) {
+		return $this->validate_text( $input );
+	}
 
-  private function validate_url($input) {
-    return esc_url_raw(strip_tags(stripslashes($input)));
-  }
+	/**
+	 *  Validate url field value
+	 *
+	 * @since 20150323
+	 * @param string $input
+	 * @return string
+	 */
+	private function validate_url( $input ) {
+		return apply_filters( 'pre_link_url', $input );
+	}
 
 
-}	#	end of RMP_Form_Admin class
+} # end of RMP_Form_Admin class
 
+#   These are just a shorthand functions
 
-if ( ! function_exists('e_esc_html') ) {
-	#   This is just a shorthand function
+/**
+ *  Echo an escaped attribute string
+ *
+ * @param string $string
+ * @see esc_attr()
+ */
+if ( ! function_exists( 'e_esc_attr' ) ) {
+	function e_esc_attr( $string ) {
+		echo esc_attr( $string );
+	}
+}
+
+/**
+ *  Echo an escaped HTML string
+ *
+ * @param string $string
+ * @see esc_html()
+ */
+if ( ! function_exists( 'e_esc_html' ) ) {
 	function e_esc_html( $string ) {
 		echo esc_html( $string );
 	}

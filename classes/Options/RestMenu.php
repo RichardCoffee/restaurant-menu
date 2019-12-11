@@ -19,8 +19,8 @@ class RMP_Options_RestMenu extends RMP_Options_Options {
 	protected function options_layout( $all = false ) {
 		$layout  = array( 'default' => true );
 		$layout['menu'] = array(
-			'label'  => '<h3>' . __('Menu Settings','rmp-restmenu') . '</h3>',
-			'text'   => '<h4>' . __("These options control the Menu's general settings",'rmp-restmenu' ) . '</h4>',
+			'label'  => __( 'Menu Settings', 'rmp-restmenu' ),
+			'text'   => __( "These options control the Menu's general settings", 'rmp-restmenu' ),
 			'render' => 'display',
 		);
 		$layout['layout'] = array(

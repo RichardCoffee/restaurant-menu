@@ -1,8 +1,14 @@
 <?php
 
-if ( ! function_exists( 'tcc_plugin_paths' ) ) {
-	function tcc_plugin_paths() {
-		return RMP_Plugin_Paths::instance();
+defined( 'ABSPATH' ) || exit;
+
+if ( ! function_exists( 'plugin_paths' ) ) {
+	function plugin_paths() {
+		static $instance = null;
+		if ( empty( $instance ) ) {
+			$instance = RMP_Plugin_Paths::instance();
+		}
+		return $instance;
 	}
 }
 
@@ -10,9 +16,10 @@ class RMP_Plugin_Paths {
 
 	protected $file;
 	protected $dir;
-	protected $pages = 'page-templates/';
-	protected $parts = 'template-parts/';
+	protected $pages  = 'page-templates/';
+	protected $parts  = 'template-parts/';
 	protected $url;
+	protected $vendor = 'vendor/';
 	protected $version;
 
 	use RMP_Trait_Magic;
@@ -22,7 +29,10 @@ class RMP_Plugin_Paths {
 	protected function __construct( $args = array() ) {
 		if ( ! empty( $args['file'] ) ) {
 			$this->parse_args( $args );
-			$this->dir = trailingslashit( $this->dir );
+			$this->dir    = trailingslashit( $this->dir );
+			$this->pages  = trailingslashit( $this->pages );
+			$this->parts  = trailingslashit( $this->parts );
+			$this->vendor = trailingslashit( $this->vendor );
 		} else {
 			static::$abort__construct = true;
 		}
@@ -31,7 +41,7 @@ class RMP_Plugin_Paths {
 	/**  Template functions  **/
 
 	public function add_plugin_template( $slug, $text ) {
-		$file = $this->dir . 'vendor/pagetemplater.php';
+		$file = $this->dir . $this->vendor . 'pagetemplater.php';
 		if ( is_readable( $file ) ) {
 			require_once( $file );
 			$pager = PageTemplater::get_instance();
@@ -39,10 +49,10 @@ class RMP_Plugin_Paths {
 		}
 	}
 
-	public function get_plugin_file_path( $file ) {
+	public function get_plugin_file_path( $file, $force = false ) {
 		$file_path   = false;
 		$theme_check = get_theme_file_path( $file );
-		if ( $theme_check && is_readable( $theme_check ) ) {
+		if ( ( ! $force ) && $theme_check && is_readable( $theme_check ) ) {
 			$file_path = $theme_check;
 		} else if ( is_readable( $this->dir . $file ) ) {
 			$file_path = $this->dir . $file;
@@ -50,10 +60,10 @@ class RMP_Plugin_Paths {
 		return $file_path;
 	}
 
-	public function get_plugin_file_uri( $file ) {
+	public function get_plugin_file_uri( $file, $force = false ) {
 		$file_uri    = false;
 		$theme_check = get_theme_file_path( $file );
-		if ( $theme_check && is_readable( $theme_check ) ) {
+		if ( ( ! $force ) && $theme_check && is_readable( $theme_check ) ) {
 			$file_uri = get_theme_file_uri( $file );
 		} else if ( is_readable( $this->dir . $file ) ) {
 			$file_uri = plugins_url( $file, $this->file );
